@@ -6,6 +6,7 @@ test('default options', function(t) {
   t.equal(plugin.port, 35729);
   t.equal(plugin.ignore, null);
   t.equal(plugin.isRunning, false);
+  t.equal(plugin.quiet, false);
   t.end();
 });
 
@@ -32,7 +33,8 @@ test('notifies when done', function(t) {
   var stats = {
     compilation: {
       assets: {'b.js': '123', 'a.js': '456', 'c.css': '789'},
-      hash: 'hash'
+      hash: 'hash',
+      children: []
     }
   };
   plugin.server = {
@@ -51,12 +53,33 @@ test('filters out ignored files', function(t) {
   });
   var stats = {
     compilation: {
-      assets: {'b.js': '123', 'a.js': '456', 'c.css': '789'}
+      assets: {'b.js': '123', 'a.js': '456', 'c.css': '789'},
+      children: []
     }
   };
   plugin.server = {
     notifyClients: function(files) {
       t.deepEqual(files.sort(), ['a.js', 'b.js']);
+      t.end();
+    }
+  };
+  plugin.done(stats);
+});
+
+test('children trigger notification', function(t) {
+  var plugin = new LiveReloadPlugin();
+  var stats = {
+    compilation: {
+      assets: {'b.js': '123', 'a.js': '456', 'c.css': '789'},
+      hash: null,
+      children: [{hash:'hash'}]
+    }
+  };
+  plugin.server = {
+    notifyClients: function(files) {
+      t.deepEqual(plugin.lastChildHashes, stats.compilation.children.map(function(child) {
+        return child.hash;
+      }));
       t.end();
     }
   };
